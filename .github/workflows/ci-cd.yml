@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: "Set up Python"
         uses: actions/setup-python@v5
@@ -135,6 +137,41 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
+      - name: "Sync Inngest signing key into Secrets Manager (DEV)"
+        if: github.ref == 'refs/heads/main'
+        env:
+          INNGEST_SIGNING_KEY_DEV: ${{ secrets.INNGEST_SIGNING_KEY_DEV }}
+          REGION: ${{ env.AWS_REGION }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${INNGEST_SIGNING_KEY_DEV:-}" ]; then
+            echo "ERROR: GitHub secret INNGEST_SIGNING_KEY_DEV is not set."
+            echo "Generate a 64-hex string and add it under Repo Settings → Secrets → Actions."
+            exit 1
+          fi
+
+          SECRET_NAME="event-forge/inngest-signing-key-dev"
+
+          if ! aws secretsmanager describe-secret --secret-id "$SECRET_NAME" --region "$REGION" >/dev/null 2>&1; then
+            aws secretsmanager create-secret \
+              --name "$SECRET_NAME" \
+              --secret-string "$INNGEST_SIGNING_KEY_DEV" \
+              --region "$REGION"
+            echo "Created $SECRET_NAME in $REGION"
+          else
+            # ensure it has a current value
+            if ! aws secretsmanager get-secret-value --secret-id "$SECRET_NAME" --region "$REGION" >/dev/null 2>&1; then
+              aws secretsmanager put-secret-value \
+                --secret-id "$SECRET_NAME" \
+                --secret-string "$INNGEST_SIGNING_KEY_DEV" \
+                --region "$REGION"
+              echo "Set value for $SECRET_NAME"
+            else
+              echo "$SECRET_NAME already has a value; leaving as is."
+            fi
+          fi
+      
       # Terraform Apply must run *after* the build steps, so the zip files exist.
       - name: "Terraform Apply (dev)"
         if: github.ref == 'refs/heads/main'
