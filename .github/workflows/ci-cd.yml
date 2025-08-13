@@ -51,7 +51,7 @@ jobs:
 
       # format *.tf files first so the terraform_fmt hook doesn't need to modify anything
       - name: "Terraform fmt (CI pre-step)"
-        run: |
+        run:
           cd infra/terraform
           terraform fmt -recursive'
 
