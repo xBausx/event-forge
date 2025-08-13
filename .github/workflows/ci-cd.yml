@@ -9,9 +9,9 @@ on:
       - main
   workflow_dispatch: # Allows manual triggering of the workflow
 
-# Global environment variables - Region normalized to ap-southeast-1
+# Global environment variables - Region normalized to us-east-1
 env:
-  AWS_REGION: "ap-southeast-1"
+  AWS_REGION: "us-east-1"
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20.x"
   TERRAFORM_VERSION: "1.6.0"
@@ -50,10 +50,10 @@ jobs:
         uses: terraform-linters/setup-tflint@v4
 
       # format *.tf files first so the terraform_fmt hook doesn't need to modify anything
-      - name: "Terraform fmt (CI pre-step)"
-        run:
-          cd infra/terraform
-          terraform fmt -recursive'
+      - name: Terraform fmt (CI pre-step)
+        shell: bash
+        working-directory: infra/terraform
+        run: terraform fmt -recursive
 
       - name: "Auto-commit Terraform fmt changes"
         if: github.event_name == 'push'
