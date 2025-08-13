@@ -56,7 +56,7 @@ jobs:
           terraform fmt -recursive'
 
       - name: "Auto-commit Terraform fmt changes"
-        if: github.event_name == 'push'   # avoid trying to push on PRs/forks
+        if: github.event_name == 'push'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(terraform): fmt via CI"
