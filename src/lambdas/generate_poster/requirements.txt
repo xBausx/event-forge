@@ -1,0 +1,11 @@
+# AWS Lambda Powertools for structured logging
+aws-lambda-powertools==2.40.0
+
+# For parsing the YAML configuration files
+PyYAML==6.0.1
+
+# Boto3 is the AWS SDK for Python, used for Secrets Manager and S3
+boto3==1.34.128
+
+# Required by our AdobeClient to make HTTP calls to the Adobe API
+requests==2.32.3

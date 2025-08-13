@@ -1,0 +1,95 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+# Global environment variables
+env:
+  AWS_REGION: "US-EAST-1"
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20.x"
+  TERRAFORM_VERSION: "1.6.0"
+
+# OIDC permissions are removed. We only need to read contents.
+permissions:
+  contents: read
+
+jobs:
+  # ====================================================================================
+  # LINT & VALIDATE: Runs on every PR and push to main.
+  # ====================================================================================
+  lint:
+    name: "Lint & Validate"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: "Set up Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: "Set up Terraform"
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: "Install pre-commit"
+        run: pip install pre-commit
+
+      - name: "Run linters via Makefile"
+        run: make lint
+
+  # ====================================================================================
+  # DEPLOY: This job is manually triggered or runs after merge to main for 'dev'
+  # ====================================================================================
+  deploy:
+    name: "Deploy to AWS"
+    needs: lint
+    runs-on: ubuntu-latest
+    # Only run on push to main or manual trigger, not on PRs.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    # Use environments for protection rules and secrets
+    environment:
+      name: ${{ (github.ref == 'refs/heads/main' && 'dev') || 'none' }}
+
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+
+      - name: "Configure AWS Credentials (Access Keys)"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: "Set up Terraform"
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: "Terraform Apply (dev)"
+        if: github.ref == 'refs/heads/main'
+        run: make tf-apply env=dev
+
+      # Note: The following steps are placeholders for building and deploying application code.
+      # We will implement these more fully once the Lambda and Inngest source is written.
+      - name: "Package Lambda functions"
+        run: echo "Placeholder for zipping Lambda artifacts..."
+
+      - name: "Deploy Inngest functions"
+        run: echo "Placeholder for deploying Inngest functions..."

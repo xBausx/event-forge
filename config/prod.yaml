@@ -1,0 +1,37 @@
+# Configuration for the 'prod' environment
+environment: prod
+
+# Logging configuration
+logging:
+  level: "WARN" # Log only warnings, errors, and critical issues
+  powertools_service_name: "event-forge-prod"
+
+# AWS specific configuration
+aws:
+  region: "us-east-1"
+  s3:
+    assets_bucket_name: "event-forge-assets-prod"
+    outputs_bucket_name: "event-forge-outputs-prod"
+  dynamodb:
+    sheet_watch_table: "SheetWatchRegistry-prod"
+  secrets_manager:
+    adobe_api_key_name: "event-forge/adobe-api-key-prod"
+    google_credentials_name: "event-forge/google-wif-config-prod"
+
+# Inngest configuration
+inngest:
+  main_trigger_event: "google/drive.sheet.updated"
+  generate_event_name: "poster/generate.request"
+
+# Adobe API configuration
+adobe:
+  # Production-level concurrency limit as defined in the architecture
+  concurrency_limit: 200
+  # Polling interval for checking job status
+  polling_interval_seconds: 10
+
+# Google configuration
+google:
+  # This is the static URL for the Inngest endpoint that Google will call
+  # This will be populated from Terraform outputs
+  ingest_webhook_url: "https://cloud.inngest.com/api/v1/e/YOUR_EVENT_KEY" # Placeholder

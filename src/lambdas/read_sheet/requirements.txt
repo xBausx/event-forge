@@ -1,0 +1,18 @@
+# AWS Lambda Powertools for structured logging, tracing, and metrics
+aws-lambda-powertools==2.40.0
+
+# Google Cloud client libraries for authentication and API interaction
+google-api-python-client==2.135.0
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+# google-auth[aws] is what enables Workload Identity Federation
+google-auth[aws]==2.30.0
+
+# For data validation against our JSON schema
+jsonschema==4.22.0
+
+# For parsing the YAML configuration files
+PyYAML==6.0.1
+
+# Boto3 is the AWS SDK for Python, required by Powertools and google-auth[aws]
+boto3==1.34.128

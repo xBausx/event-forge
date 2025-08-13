@@ -1,0 +1,39 @@
+# Configuration for the 'dev' environment
+environment: dev
+
+# Logging configuration
+logging:
+  level: "DEBUG" # Most verbose level for development
+  powertools_service_name: "event-forge-dev"
+
+# AWS specific configuration
+aws:
+  region: "us-east-1"
+  s3:
+    assets_bucket_name: "event-forge-assets-dev"
+    outputs_bucket_name: "event-forge-outputs-dev"
+  dynamodb:
+    sheet_watch_table: "SheetWatchRegistry-dev"
+  secrets_manager:
+    adobe_api_key_name: "event-forge/adobe-api-key-dev"
+    google_credentials_name: "event-forge/google-wif-config-dev"
+
+# Inngest configuration
+inngest:
+  # The event name that triggers the main fan-out workflow
+  main_trigger_event: "google/drive.sheet.updated"
+  # The event name for individual poster generation requests
+  generate_event_name: "poster/generate.request"
+
+# Adobe API configuration
+adobe:
+  # Lower concurrency for dev to save costs and avoid rate limits during testing
+  concurrency_limit: 5
+  # Polling interval for checking job status
+  polling_interval_seconds: 10
+
+# Google configuration
+google:
+  # This is the static URL for the Inngest endpoint that Google will call
+  # This will be populated from Terraform outputs
+  ingest_webhook_url: "https://cloud.inngest.com/api/v1/e/YOUR_EVENT_KEY" # Placeholder
