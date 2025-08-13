@@ -1,7 +1,7 @@
 # src/common/aws.py
 
 import logging
-from typing import Dict, Optional
+from typing import Optional
 
 import boto3
 from botocore.exceptions import ClientError

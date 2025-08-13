@@ -1,7 +1,6 @@
 # src/lambdas/generate_poster/handler.py
 
 import json
-import os
 from typing import Any, Dict
 
 # Import our common modules

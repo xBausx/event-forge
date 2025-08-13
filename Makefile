@@ -32,6 +32,13 @@ install: ## Install all project dependencies (Python Lambdas, Node Orchestration
 	done
 	@echo "\nInstallation complete."
 
+# detect Windows
+ifeq ($(OS),Windows_NT)
+	SKIP_LOCAL := terraform_fmt,terraform_validate,terraform_tflint
+else
+	SKIP_LOCAL :=
+endif
+
 lint: ## Run all linters (Terraform, Python, TS) using pre-commit configuration.
 	@echo "--> Running all linters..."
 	@pre-commit run --all-files

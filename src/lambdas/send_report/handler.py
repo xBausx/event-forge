@@ -1,7 +1,6 @@
 # src/lambdas/send_report/handler.py
 
 import json
-import os
 from typing import Any, Dict
 
 import requests

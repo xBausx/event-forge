@@ -1,7 +1,7 @@
 # src/lambdas/read_sheet/handler.py
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 # Import our common modules
 from src.common import config, google, schema
