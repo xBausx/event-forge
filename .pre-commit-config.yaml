@@ -1,8 +1,7 @@
-# .pre-commit-config.yaml
 # See https://pre-commit.com for more information
-
+# See https://pre-commit.com/hooks.html for more hooks
 repos:
-  # --- General hygiene ---
+  # --- General ---
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -30,10 +29,10 @@ repos:
         require_serial: true
       - id: terraform_tflint
         args:
-          - '--args=--only=terraform_deprecated_interpolation'
-          - '--args=--only=terraform_deprecated_index'
-          - '--args=--only=terraform_unused_declarations'
-          - '--args=--only=terraform_comment_syntax'
+          - "--args=--only=terraform_deprecated_interpolation"
+          - "--args=--only=terraform_deprecated_index"
+          - "--args=--only=terraform_unused_declarations"
+          - "--args=--only=terraform_comment_syntax"
 
   # --- Python ---
   - repo: https://github.com/psf/black
@@ -59,17 +58,16 @@ repos:
         files: ^src/.*\.py$
         args:
           - "--max-line-length=88"
-          - "--ignore=E203,W503"  # Black-compatible
+          - "--ignore=E203,W503" # Black-compatible
 
   # --- Node / TypeScript / JSON / YAML ---
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.3.2
+  - repo: https://github.com/ComPWA/prettier-pre-commit
+    rev: v3.4.2
     hooks:
       - id: prettier
         files: '\.(js|jsx|ts|tsx|json|md|ya?ml|css|html)$'
         exclude: ^infra/
         additional_dependencies:
-          - prettier@3.3.2
-          # optional plugins:
-          # - prettier-plugin-organize-imports@3.2.4
-          # - prettier-plugin-tailwindcss@0.5.14
+          - prettier@3.4.2
+          # add plugins here if you use them, e.g.:
+          # - '@prettier/plugin-xml@3.4.2'

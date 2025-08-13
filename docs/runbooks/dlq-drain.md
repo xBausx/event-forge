@@ -18,8 +18,8 @@ The primary DLQ in our system is associated with the fan-out processing queue fo
 
 ## 2. Prerequisites
 
--   **AWS Permissions:** You need IAM permissions to access SQS (List, Get, Purge) and CloudWatch Logs (Read).
--   **CloudWatch Alarm:** A CloudWatch alarm, `DLQ-Messages-Visible-Alarm`, should have notified you of this situation.
+- **AWS Permissions:** You need IAM permissions to access SQS (List, Get, Purge) and CloudWatch Logs (Read).
+- **CloudWatch Alarm:** A CloudWatch alarm, `DLQ-Messages-Visible-Alarm`, should have notified you of this situation.
 
 ## 3. Investigation and Draining Procedure
 
@@ -33,25 +33,25 @@ Acknowledge the CloudWatch alarm to inform the team that the issue is being inve
 2.  **Find the DLQ:** Locate the relevant DLQ. Its name will be based on our Terraform configuration, typically `event-forge-generate-poster-dlq-<env>`.
 3.  **View Messages:** Click on the queue and select "Send and receive messages". Click "Poll for messages".
 4.  **Inspect a Message:**
-    -   Click on a message to view its `Body`. The body contains the full Inngest event payload (e.g., the specific row data from the Google Sheet).
-    -   Go to the `Attributes` tab. Look for attributes like `ApproximateReceiveCount`.
-    -   Crucially, check for custom error attributes that the Lambda function may have added.
+    - Click on a message to view its `Body`. The body contains the full Inngest event payload (e.g., the specific row data from the Google Sheet).
+    - Go to the `Attributes` tab. Look for attributes like `ApproximateReceiveCount`.
+    - Crucially, check for custom error attributes that the Lambda function may have added.
 5.  **Correlate with Logs:**
-    -   Use the `traceId` or `runId` from the message body to find the corresponding execution logs in CloudWatch Logs for the `generate_poster` Lambda function.
-    -   Analyze the logs to understand the root cause of the failure. Common causes include:
-        -   A bug in the Lambda handler.
-        -   Invalid data that passed initial validation but failed during processing.
-        -   Downstream API errors (e.g., from the Adobe API).
-        -   Permission errors or misconfigurations.
+    - Use the `traceId` or `runId` from the message body to find the corresponding execution logs in CloudWatch Logs for the `generate_poster` Lambda function.
+    - Analyze the logs to understand the root cause of the failure. Common causes include:
+      - A bug in the Lambda handler.
+      - Invalid data that passed initial validation but failed during processing.
+      - Downstream API errors (e.g., from the Adobe API).
+      - Permission errors or misconfigurations.
 
 ### Step 3: Resolve the Root Cause
 
 **Do not proceed to redrive until you have a fix or a mitigation strategy.**
 
--   If it's a code bug, deploy a hotfix.
--   If it's a configuration issue, apply a fix via Terraform.
--   If it's a transient downstream issue, confirm the downstream service is healthy again.
--   If the message is permanently invalid ("poison pill"), you may decide to discard it.
+- If it's a code bug, deploy a hotfix.
+- If it's a configuration issue, apply a fix via Terraform.
+- If it's a transient downstream issue, confirm the downstream service is healthy again.
+- If the message is permanently invalid ("poison pill"), you may decide to discard it.
 
 ### Step 4: Redrive Messages to the Source Queue
 

@@ -1,7 +1,7 @@
 # src/lambdas/read_sheet/handler.py
 
 import json
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 # Import our common modules
 from src.common import config, google, schema
@@ -31,7 +31,9 @@ try:
 except (ValueError, FileNotFoundError) as e:
     # If config fails to load, this is a fatal misconfiguration.
     # The Lambda cannot operate, so we log the error and prepare to fail invocations.
-    logger.error("FATAL: Could not load configuration or schema.", extra={"error": str(e)})
+    logger.error(
+        "FATAL: Could not load configuration or schema.", extra={"error": str(e)}
+    )
     app_config = None
     product_row_schema = None
 
@@ -39,6 +41,7 @@ except (ValueError, FileNotFoundError) as e:
 # ==============================================================================
 # Lambda Handler
 # ==============================================================================
+
 
 @logger.inject_lambda_context(log_event=True)
 def handler(event: Dict[str, Any], context: object) -> Dict[str, Any]:
@@ -63,7 +66,10 @@ def handler(event: Dict[str, Any], context: object) -> Dict[str, Any]:
     # Fail fast if the configuration was not loaded correctly
     if not app_config or not product_row_schema:
         logger.error("Handler cannot execute due to missing configuration.")
-        return {"statusCode": 500, "body": json.dumps({"error": "Internal server configuration error"})}
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": "Internal server configuration error"}),
+        }
 
     # 1. Extract spreadsheet ID from the incoming Inngest event
     try:
@@ -71,25 +77,36 @@ def handler(event: Dict[str, Any], context: object) -> Dict[str, Any]:
         logger.info(f"Processing request for spreadsheet ID: {spreadsheet_id}")
     except KeyError:
         logger.warning("Incoming event is missing 'data.file_id'.")
-        return {"statusCode": 400, "body": json.dumps({"error": "Missing file_id in event data"})}
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": "Missing file_id in event data"}),
+        }
 
     # 2. Get Google Credentials using Workload Identity Federation
     # The email is fetched from our environment-specific config.
-    gcp_sa_email = app_config["aws"]["secrets_manager"]["google_credentials_name"] # We'll store the email here for simplicity
+    gcp_sa_email = app_config["aws"]["secrets_manager"][
+        "google_credentials_name"
+    ]  # We'll store the email here for simplicity
     creds = google.get_google_credentials(
         gcp_service_account_email=gcp_sa_email,
         scopes=[google.DRIVE_READONLY_SCOPE, google.SHEETS_READONLY_SCOPE],
     )
     if not creds:
         logger.error("Failed to acquire Google credentials.")
-        return {"statusCode": 500, "body": json.dumps({"error": "Failed to authenticate with Google"})}
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": "Failed to authenticate with Google"}),
+        }
 
     # 3. Read data from the Google Sheet
     # The range is hardcoded for now but could be made configurable.
     rows = google.read_google_sheet(creds, spreadsheet_id, sheet_range="A:Z")
     if rows is None:
         logger.error("Failed to read data from Google Sheet.")
-        return {"statusCode": 500, "body": json.dumps({"error": "Failed to read sheet data"})}
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": "Failed to read sheet data"}),
+        }
 
     # 4. Validate each row and collect valid/invalid rows
     valid_rows = []

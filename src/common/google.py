@@ -1,10 +1,11 @@
 # src/common/google.py
 
 import logging
-from typing import List, Dict, Any, Optional
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
+from typing import Any, Dict, List, Optional
+
 from google.auth import aws
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -81,7 +82,9 @@ def read_google_sheet(
                                         or None if an error occurs.
     """
     try:
-        logger.info(f"Connecting to Google Sheets API for spreadsheet: {spreadsheet_id}")
+        logger.info(
+            f"Connecting to Google Sheets API for spreadsheet: {spreadsheet_id}"
+        )
         service = build("sheets", "v4", credentials=creds)
         sheet = service.spreadsheets()
         result = (

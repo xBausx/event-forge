@@ -1,25 +1,25 @@
 {
-    "name": "event-forge-orchestration",
-    "version": "1.0.0",
-    "private": true,
-    "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "dev": "tsx watch src/index.ts",
-        "deploy": "inngest-cli deploy",
-        "lint": "prettier --check .",
-        "typecheck": "tsc -p tsconfig.json --noEmit"
-    },
-    "dependencies": {
-        "@aws-sdk/client-lambda": "^3.865.0",
-        "@aws-sdk/client-secrets-manager": "^3.864.0",
-        "axios": "^1.11.0",
-        "inngest": "^3.40.1"
-    },
-    "devDependencies": {
-        "@types/node": "^20.19.10",
-        "prettier": "^3.3.2",
-        "tsx": "^4.20.4",
-        "typescript": "^5.9.2"
-    },
-    "type": "module"
+  "name": "event-forge-orchestration",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "deploy": "inngest-cli deploy",
+    "lint": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.865.0",
+    "@aws-sdk/client-secrets-manager": "^3.864.0",
+    "axios": "^1.11.0",
+    "inngest": "^3.40.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.10",
+    "prettier": "^3.3.2",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2"
+  },
+  "type": "module"
 }

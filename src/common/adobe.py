@@ -1,8 +1,9 @@
 # src/common/adobe.py
 
 import logging
+from typing import Any, Dict, Optional, Tuple
+
 import requests
-from typing import Dict, Any, Optional, Tuple
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -98,9 +99,17 @@ class AdobeClient:
         # The Rendition API can accept data for merging just like the Data Merge API
         rendition_endpoint = f"{INDESIGN_API_BASE_URL}/v1/jobs/rendition"
         payload = {
-            "input": {"storage": "EXTERNAL", "href": template_url, "type": "application/vnd.adobe.indesign-template"},
+            "input": {
+                "storage": "EXTERNAL",
+                "href": template_url,
+                "type": "application/vnd.adobe.indesign-template",
+            },
             "data": {"storage": "INLINE", "json": data},
-            "output": {"storage": "EXTERNAL", "href": output_url, "type": "application/pdf"},
+            "output": {
+                "storage": "EXTERNAL",
+                "href": output_url,
+                "type": "application/pdf",
+            },
         }
 
         try:
@@ -141,7 +150,7 @@ class AdobeClient:
                                         Returns None on communication error.
         """
         if not self.access_token and not self._authenticate():
-            return None # Failed to get a token
+            return None  # Failed to get a token
 
         try:
             logger.info(f"Checking status for job: {job_url}")

@@ -10,9 +10,13 @@ This project implements a secure, scalable, and resilient serverless system for 
     - [Architecture](#architecture)
     - [Getting Started](#getting-started)
     - [Development](#development)
-    - [Deployment](#deployment)
-    - [Observability \& Monitoring](#observability--monitoring)
-    - [Runbooks](#runbooks)
+- [from your repo root](#from-your-repo-root)
+- [verify](#verify)
+- [run the same commands your CI uses](#run-the-same-commands-your-ci-uses)
+- [install the git hook (so it runs on commit locally)](#install-the-git-hook-so-it-runs-on-commit-locally)
+  - [Deployment](#deployment)
+  - [Observability \& Monitoring](#observability--monitoring)
+  - [Runbooks](#runbooks)
 
 ---
 
@@ -34,6 +38,7 @@ The detailed system architecture, including component diagrams, data flow, and s
 To set up the project for local development, you will need AWS credentials, Terraform, Node.js, and Python configured.
 
 1.  **Clone the repository:**
+
     ```bash
     git clone <repository-url>
     cd design-automation
@@ -52,12 +57,40 @@ To set up the project for local development, you will need AWS credentials, Terr
 
 This project uses a combination of Python for AWS Lambda functions and TypeScript for the Inngest orchestration layer.
 
--   **Infrastructure**: Managed via Terraform in the `infra/` directory.
--   **Lambda Functions**: Located in `src/lambdas/`. Each function is a separate package with its own `requirements.txt`.
--   **Orchestration Logic**: Defined in `src/orchestration/`.
--   **Shared Code**: Common utilities are located in `src/common/`.
+- **Infrastructure**: Managed via Terraform in the `infra/` directory.
+- **Lambda Functions**: Located in `src/lambdas/`. Each function is a separate package with its own `requirements.txt`.
+- **Orchestration Logic**: Defined in `src/orchestration/`.
+- **Shared Code**: Common utilities are located in `src/common/`.
 
 See the [Makefile](./Makefile) for common development commands (e.g., `make lint`, `make test`).
+
+# from your repo root
+
+    ```bash
+    py -3.12 -m venv .venv
+    .\.venv\Scripts\Activate.ps1    # if you get a policy error, run: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+    python -m pip install -U pip
+    pip install pre-commit
+    ```
+
+# verify
+
+    ```bash
+    pre-commit --version
+    ```
+
+# run the same commands your CI uses
+
+    ```bash
+    pre-commit clean
+    pre-commit run --all-files
+    ```
+
+# install the git hook (so it runs on commit locally)
+
+    ```bash
+    pre-commit install
+    ```
 
 ### Deployment
 
@@ -72,14 +105,14 @@ Manual deployments can be performed by running the appropriate jobs in GitHub Ac
 
 ### Observability & Monitoring
 
--   **Logs**: All Lambda functions emit structured JSON logs using AWS Lambda Powertools. Logs are ingested into CloudWatch.
--   **Traces**: Inngest provides end-to-end tracing for the entire workflow, visible in the Inngest Cloud dashboard.
--   **Alarms**: Critical CloudWatch Alarms are defined in Terraform for high error rates, DLQ visibility, and function timeouts.
+- **Logs**: All Lambda functions emit structured JSON logs using AWS Lambda Powertools. Logs are ingested into CloudWatch.
+- **Traces**: Inngest provides end-to-end tracing for the entire workflow, visible in the Inngest Cloud dashboard.
+- **Alarms**: Critical CloudWatch Alarms are defined in Terraform for high error rates, DLQ visibility, and function timeouts.
 
 ### Runbooks
 
 Operational procedures for maintenance, incident response, and manual interventions are documented in the `docs/runbooks/` directory.
 
--   [Webhook Renewal](./docs/runbooks/webhook-renewal.md): Steps to manually renew the Google Drive Push Notification channel.
--   [DLQ Message Draining](./docs/runbooks/dlq-drain.md): Procedure for reprocessing failed events from the SQS Dead-Letter Queue.
--   [Re-rendering by Job ID](./docs/runbooks/re-render-by-jobid.md): How to manually trigger a re-render for a specific job.
+- [Webhook Renewal](./docs/runbooks/webhook-renewal.md): Steps to manually renew the Google Drive Push Notification channel.
+- [DLQ Message Draining](./docs/runbooks/dlq-drain.md): Procedure for reprocessing failed events from the SQS Dead-Letter Queue.
+- [Re-rendering by Job ID](./docs/runbooks/re-render-by-jobid.md): How to manually trigger a re-render for a specific job.

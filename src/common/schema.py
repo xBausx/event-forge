@@ -1,7 +1,8 @@
 # src/common/schema.py
 
-from typing import Dict, Any
-from jsonschema import validate, ValidationError
+from typing import Any, Dict
+
+from jsonschema import ValidationError, validate
 
 from src.common.logging import logger
 

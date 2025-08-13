@@ -2,12 +2,12 @@
 
 import json
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
 import requests
 
 # Import our common modules
-from src.common import config, aws
+from src.common import aws, config
 from src.common.logging import logger
 
 # ==============================================================================
@@ -24,6 +24,7 @@ except (ValueError, FileNotFoundError) as e:
 # ==============================================================================
 # Lambda Handler
 # ==============================================================================
+
 
 @logger.inject_lambda_context(log_event=True)
 def handler(event: Dict[str, Any], context: object) -> Dict[str, Any]:
@@ -46,7 +47,10 @@ def handler(event: Dict[str, Any], context: object) -> Dict[str, Any]:
     """
     if not app_config:
         logger.error("Handler cannot execute due to missing configuration.")
-        return {"statusCode": 500, "body": json.dumps({"error": "Internal server configuration error"})}
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": "Internal server configuration error"}),
+        }
 
     # 1. Extract results from the incoming Inngest event
     try:
@@ -58,18 +62,28 @@ def handler(event: Dict[str, Any], context: object) -> Dict[str, Any]:
         logger.info("Generating report.", extra={"results": results})
     except KeyError:
         logger.warning("Incoming event is missing 'data.results'.")
-        return {"statusCode": 400, "body": json.dumps({"error": "Missing results in event data"})}
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": "Missing results in event data"}),
+        }
 
     # 2. Fetch the Slack Webhook URL from Secrets Manager
     # We will need to create a secret named 'event-forge/slack-webhook-url-dev'
-    slack_webhook_secret_name = "event-forge/slack-webhook-url-" + app_config["environment"]
+    slack_webhook_secret_name = (
+        "event-forge/slack-webhook-url-" + app_config["environment"]
+    )
     slack_url = aws.get_secret(slack_webhook_secret_name)
 
     if not slack_url:
-        logger.error("Failed to retrieve Slack webhook URL from Secrets Manager. Cannot send report.")
+        logger.error(
+            "Failed to retrieve Slack webhook URL from Secrets Manager. Cannot send report."
+        )
         # We return 200 OK because failing here could cause an infinite retry loop.
         # The core workflow succeeded; only the notification failed.
-        return {"statusCode": 200, "body": json.dumps({"warning": "Report could not be sent."})}
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"warning": "Report could not be sent."}),
+        }
 
     # 3. Format the Slack message
     message_text = f"""
@@ -98,7 +112,10 @@ A workflow has completed for Google Sheet: `{spreadsheet_id}`
     except requests.exceptions.RequestException as e:
         logger.error("Failed to send report to Slack.", extra={"error": str(e)})
         # Again, return 200 OK to avoid retries on notification failure.
-        return {"statusCode": 200, "body": json.dumps({"warning": "Report could not be sent."})}
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"warning": "Report could not be sent."}),
+        }
 
     return {
         "statusCode": 200,

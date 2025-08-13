@@ -1,9 +1,10 @@
 # src/common/aws.py
 
 import logging
+from typing import Dict, Optional
+
 import boto3
 from botocore.exceptions import ClientError
-from typing import Dict, Optional
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -79,11 +80,11 @@ def create_presigned_url(
             pass
 
         url = s3_client.generate_presigned_url(
-            ClientMethod=client_method,
-            Params=params,
-            ExpiresIn=expiration
+            ClientMethod=client_method, Params=params, ExpiresIn=expiration
         )
         return url
     except ClientError as e:
-        logger.error(f"Failed to generate pre-signed URL for {bucket}/{object_name}: {e}")
+        logger.error(
+            f"Failed to generate pre-signed URL for {bucket}/{object_name}: {e}"
+        )
         return None

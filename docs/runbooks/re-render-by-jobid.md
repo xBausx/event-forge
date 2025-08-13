@@ -16,8 +16,8 @@ To re-render a single poster, we need to re-send this specific event with the ex
 
 ## 2. Prerequisites
 
--   **Job Data Payload:** You must have the complete JSON data payload for the specific sheet row you want to re-render.
--   **Permissions:** Access to the Inngest Cloud Dashboard with "replay" permissions is required for the preferred method.
+- **Job Data Payload:** You must have the complete JSON data payload for the specific sheet row you want to re-render.
+- **Permissions:** Access to the Inngest Cloud Dashboard with "replay" permissions is required for the preferred method.
 
 ## 3. Procedure
 

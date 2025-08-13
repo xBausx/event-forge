@@ -1,9 +1,10 @@
 # src/common/config.py
 
 import os
-import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
+import yaml
 
 from src.common.logging import logger
 
