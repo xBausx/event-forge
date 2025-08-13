@@ -17,7 +17,7 @@ env:
   TERRAFORM_VERSION: "1.6.0"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   # ====================================================================================
@@ -45,6 +45,24 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
+      # install tflint so the pre-commit hook can run it
+      - name: "Set up TFLint"
+        uses: terraform-linters/setup-tflint@v4
+
+      # format *.tf files first so the terraform_fmt hook doesn't need to modify anything
+      - name: "Terraform fmt (CI pre-step)"
+        run: |
+          cd infra/terraform
+          terraform fmt -recursive'
+
+      - name: "Auto-commit Terraform fmt changes"
+        if: github.event_name == 'push'   # avoid trying to push on PRs/forks
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(terraform): fmt via CI"
+          branch: ${{ github.ref_name }}
+          file_pattern: infra/terraform/**/*.tf
+
       - name: "Install pre-commit"
         run: pip install pre-commit
 
@@ -65,6 +83,8 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: "Set up Python"
         uses: actions/setup-python@v5
