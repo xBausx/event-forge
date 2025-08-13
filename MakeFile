@@ -19,6 +19,7 @@ help:
 
 install: ## Install all project dependencies (Python Lambdas, Node Orchestration, and pre-commit hooks).
 	@echo "--> Installing pre-commit hooks..."
+	@pip3 install pre-commit
 	@pre-commit install
 	@echo "\n--> Installing Node.js dependencies for orchestration..."
 	@cd src/orchestration && npm install
@@ -26,7 +27,7 @@ install: ## Install all project dependencies (Python Lambdas, Node Orchestration
 	@for dir in src/lambdas/*/; do \
 		if [ -f "$${dir}requirements.txt" ]; then \
 			echo "Installing requirements for $${dir}..."; \
-			pip install -r "$${dir}requirements.txt"; \
+			pip3 install -r "$${dir}requirements.txt"; \
 		fi; \
 	done
 	@echo "\nInstallation complete."
