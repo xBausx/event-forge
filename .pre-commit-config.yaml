@@ -36,6 +36,17 @@ repos:
           - "--args=--only=terraform_comment_syntax"
 
   # --- Python format/lint ---
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.3.1
+    hooks:
+      - id: autoflake
+        args:
+          - --in-place
+          - --remove-all-unused-imports
+          - --remove-unused-variables
+          - --expand-star-imports
+        files: ^src/.*\.py$
+
   - repo: https://github.com/psf/black
     rev: 24.8.0
     hooks:
