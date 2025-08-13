@@ -9,14 +9,13 @@ on:
       - main
   workflow_dispatch: # Allows manual triggering of the workflow
 
-# Global environment variables
+# Global environment variables - Region normalized to ap-southeast-1
 env:
-  AWS_REGION: "US-EAST-1"
+  AWS_REGION: "ap-southeast-1"
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20.x"
   TERRAFORM_VERSION: "1.6.0"
 
-# OIDC permissions are removed. We only need to read contents.
 permissions:
   contents: read
 
@@ -53,22 +52,29 @@ jobs:
         run: make lint
 
   # ====================================================================================
-  # DEPLOY: This job is manually triggered or runs after merge to main for 'dev'
+  # DEPLOY: This job builds the application code and then deploys the infrastructure.
   # ====================================================================================
   deploy:
-    name: "Deploy to AWS"
+    name: "Build & Deploy to AWS"
     needs: lint
     runs-on: ubuntu-latest
-    # Only run on push to main or manual trigger, not on PRs.
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-
-    # Use environments for protection rules and secrets
     environment:
       name: ${{ (github.ref == 'refs/heads/main' && 'dev') || 'none' }}
 
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: "Set up Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: "Configure AWS Credentials (Access Keys)"
         uses: aws-actions/configure-aws-credentials@v4
@@ -77,19 +83,39 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: "Build Python Lambdas with Dependencies"
+        run: |
+          set -e
+          echo "Building Python Lambda packages..."
+          for fn in read_sheet generate_poster send_report; do
+            echo "--- Packaging $fn ---"
+            pushd src/lambdas/$fn
+            # Vendor dependencies into the function directory
+            python3 -m pip install -r requirements.txt -t .
+            # Copy the shared common code
+            if [ ! -d "src" ]; then mkdir src; fi
+            cp -r ../../common src/common
+            # Optional: Clean up to reduce zip size
+            find . -type d -name "__pycache__" -exec rm -rf {} +
+            popd
+          done
+          echo "All Python Lambdas packaged successfully."
+
+      - name: "Build Orchestration Code"
+        run: |
+          echo "Building TypeScript orchestration code..."
+          pushd src/orchestration
+          npm ci
+          npm run build
+          popd
+          echo "Orchestration code built successfully."
+
       - name: "Set up Terraform"
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
+      # Terraform Apply must run *after* the build steps, so the zip files exist.
       - name: "Terraform Apply (dev)"
         if: github.ref == 'refs/heads/main'
         run: make tf-apply env=dev
-
-      # Note: The following steps are placeholders for building and deploying application code.
-      # We will implement these more fully once the Lambda and Inngest source is written.
-      - name: "Package Lambda functions"
-        run: echo "Placeholder for zipping Lambda artifacts..."
-
-      - name: "Deploy Inngest functions"
-        run: echo "Placeholder for deploying Inngest functions..."
