@@ -23,67 +23,67 @@ jobs:
   # ====================================================================================
   # LINT & VALIDATE: Runs on every PR and push to main.
   # ====================================================================================
-lint:
-  name: "Lint & Validate"
-  runs-on: ubuntu-latest
-  steps:
-    - name: "Checkout code"
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0   # allow pushing a commit
+  lint:
+    name: "Lint & Validate"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # allow pushing a commit
 
-    - name: "Set up Python"
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: "Set up Node.js"
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
+      - name: "Set up Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
-    - name: "Set up Terraform"
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - name: "Set up Terraform"
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-    - name: "Set up TFLint"
-      uses: terraform-linters/setup-tflint@v4
+      - name: "Set up TFLint"
+        uses: terraform-linters/setup-tflint@v4
 
-    - name: Terraform fmt (CI pre-step)
-      shell: bash
-      working-directory: infra/terraform
-      run: terraform fmt -recursive
+      - name: Terraform fmt (CI pre-step)
+        shell: bash
+        working-directory: infra/terraform
+        run: terraform fmt -recursive
 
-    - name: "Auto-commit Terraform fmt changes"
-      if: github.event_name == 'push'
-      uses: stefanzweifel/git-auto-commit-action@v5
-      with:
-        commit_message: "chore(terraform): fmt via CI"
-        branch: ${{ github.ref_name }}
-        file_pattern: infra/terraform/**/*.tf
+      - name: "Auto-commit Terraform fmt changes"
+        if: github.event_name == 'push'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(terraform): fmt via CI"
+          branch: ${{ github.ref_name }}
+          file_pattern: infra/terraform/**/*.tf
 
-    - name: "Install pre-commit"
-      run: pip install pre-commit
+      - name: "Install pre-commit"
+        run: pip install pre-commit
 
-    # ⬇Run lint but don't fail the job yet
-    - name: "Run linters via Makefile"
-      id: run_precommit
-      run: make lint
-      continue-on-error: true
+      # ⬇Run lint but don't fail the job yet
+      - name: "Run linters via Makefile"
+        id: run_precommit
+        run: make lint
+        continue-on-error: true
 
-    # ⬇If pre-commit changed files (e.g., trailing whitespace), commit them
-    - name: "Auto-commit pre-commit fixes"
-      if: github.event_name == 'push' && steps.run_precommit.outcome == 'failure'
-      uses: stefanzweifel/git-auto-commit-action@v5
-      with:
-        commit_message: "chore(pre-commit): auto-fix formatting"
-        branch: ${{ github.ref_name }}
+      # ⬇If pre-commit changed files (e.g., trailing whitespace), commit them
+      - name: "Auto-commit pre-commit fixes"
+        if: github.event_name == 'push' && steps.run_precommit.outcome == 'failure'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(pre-commit): auto-fix formatting"
+          branch: ${{ github.ref_name }}
 
-    # ⬇Re-run lint; this should now pass cleanly
-    - name: "Re-run linters"
-      if: github.event_name == 'push' && steps.run_precommit.outcome == 'failure'
-      run: make lint
+      # ⬇Re-run lint; this should now pass cleanly
+      - name: "Re-run linters"
+        if: github.event_name == 'push' && steps.run_precommit.outcome == 'failure'
+        run: make lint
 
   # ====================================================================================
   # DEPLOY: This job builds the application code and then deploys the infrastructure.
