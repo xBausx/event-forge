@@ -7,21 +7,16 @@ on:
     branches: [ main ]
   workflow_dispatch: {}
 
-# Global environment variables
 env:
   AWS_REGION: "us-east-1"
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20.x"
   TERRAFORM_VERSION: "1.6.0"
 
-# NOTE: 'workflows' is not a valid permission here; omit it.
 permissions:
   contents: write
 
 jobs:
-  # ====================================================================================
-  # LINT & VALIDATE
-  # ====================================================================================
   lint:
     name: "Lint & Validate"
     runs-on: ubuntu-latest
@@ -29,7 +24,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # allow pushing auto-fmt commits
+          fetch-depth: 0
 
       - name: "Set up Python"
         uses: actions/setup-python@v5
@@ -49,13 +44,11 @@ jobs:
       - name: "Set up TFLint"
         uses: terraform-linters/setup-tflint@v4
 
-      # Pre-format *.tf so the terraform_fmt hook finds nothing to change
       - name: "Terraform fmt (CI pre-step)"
         shell: bash
         working-directory: infra/terraform
         run: terraform fmt -recursive
 
-      # Commit only Terraform fmt changes (safe; never touches workflow files)
       - name: "Auto-commit Terraform fmt changes"
         if: github.event_name == 'push'
         uses: stefanzweifel/git-auto-commit-action@v5
@@ -68,20 +61,17 @@ jobs:
       - name: "Install pre-commit"
         run: pip install pre-commit
 
-      # Run pre-commit but don't fail the job if it modifies files (e.g., whitespace)
       - name: "Run linters via Makefile"
         id: run_precommit
         run: make lint
         continue-on-error: true
 
-      # Optionally auto-commit pre-commit fixes, but EXCLUDE .github/workflows/*
       - name: "Auto-commit pre-commit fixes (exclude workflow files)"
         if: github.event_name == 'push' && steps.run_precommit.outcome == 'failure'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(pre-commit): auto-fix formatting"
           branch: ${{ github.ref_name }}
-          # Only commit common project paths; do NOT include .github/**
           file_pattern: |
             src/**/*
             infra/terraform/**/*.tf
@@ -93,14 +83,10 @@ jobs:
             .pre-commit-config.yaml
             README.md
 
-      # Re-run lint; should now pass cleanly
       - name: "Re-run linters"
         if: github.event_name == 'push' && steps.run_precommit.outcome == 'failure'
         run: make lint
 
-  # ====================================================================================
-  # DEPLOY: Build app code and deploy infra.
-  # ====================================================================================
   deploy:
     name: "Build & Deploy to AWS"
     needs: lint
@@ -145,7 +131,6 @@ jobs:
             find . -type d -name "__pycache__" -exec rm -rf {} +
             popd
           done
-          echo "All Python Lambdas packaged successfully."
 
       - name: "Build Orchestration Code"
         run: |
@@ -154,53 +139,17 @@ jobs:
           npm ci
           npm run build
           popd
-          echo "Orchestration code built successfully."
 
       - name: "Set up Terraform"
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      # Ensure Inngest signing key exists in Secrets Manager (uses DEV AWS keys)
-      - name: "Sync Inngest signing key into Secrets Manager (DEV)"
-        if: github.ref == 'refs/heads/main'
-        env:
-          INNGEST_SIGNING_KEY_DEV: ${{ secrets.INNGEST_SIGNING_KEY_DEV }}
-          REGION: ${{ env.AWS_REGION }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "${INNGEST_SIGNING_KEY_DEV:-}" ]; then
-            echo "ERROR: GitHub secret INNGEST_SIGNING_KEY_DEV is not set."
-            echo "Generate a 64-hex string and add it under Repo Settings → Secrets → Actions."
-            exit 1
-          fi
-
-          SECRET_NAME="event-forge/inngest-signing-key-dev"
-
-          if ! aws secretsmanager describe-secret --secret-id "$SECRET_NAME" --region "$REGION" >/dev/null 2>&1; then
-            aws secretsmanager create-secret \
-              --name "$SECRET_NAME" \
-              --secret-string "$INNGEST_SIGNING_KEY_DEV" \
-              --region "$REGION"
-            echo "Created $SECRET_NAME in $REGION"
-          else
-            if ! aws secretsmanager get-secret-value --secret-id "$SECRET_NAME" --region "$REGION" >/dev/null 2>&1; then
-              aws secretsmanager put-secret-value \
-                --secret-id "$SECRET_NAME" \
-                --secret-string "$INNGEST_SIGNING_KEY_DEV" \
-                --region "$REGION"
-              echo "Set value for $SECRET_NAME"
-            else
-              echo "$SECRET_NAME already has a value; leaving as is."
-            fi
-          fi
-
-      # Apply must run *after* build steps, so zips exist.
       - name: "Terraform Apply (dev)"
         if: github.ref == 'refs/heads/main'
         run: make tf-apply env=dev
-      
+
+      # ⬇⬇⬇ Set the signing key directly on the Lambda after apply (no Secrets Manager) ⬇⬇⬇
       - name: "Set INNGEST_SIGNING_KEY on orchestration Lambda (post-apply)"
         if: github.ref == 'refs/heads/main'
         working-directory: infra/terraform
@@ -237,8 +186,6 @@ jobs:
 
           echo "INNGEST_SIGNING_KEY set on $FUNC_NAME"
 
-
-      # (Optional) Print Terraform outputs for convenience
       - name: "Show Terraform Outputs"
         if: github.ref == 'refs/heads/main'
         working-directory: infra/terraform

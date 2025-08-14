@@ -349,7 +349,7 @@ resource "aws_lambda_function" "orchestration_endpoint" {
   environment {
     variables = {
       APP_ENV                 = var.env
-      ADOBE_CONCURRENCY_LIMIT = tostring(lookup(local.adobe_concurrency_limits, var.env))
+      ADOBE_CONCURRENCY_LIMIT = lookup(local.adobe_concurrency_limits, var.env)
       AWS_REGION              = var.aws_region
       INNGEST_SIGNING_KEY     = "set-by-ci"
     }
