@@ -21,7 +21,7 @@ variable "tags" {
   type        = map(string)
   description = "A map of tags to apply to all taggable resources."
   default = {
-    Project     = "Event-Forge"
-    ManagedBy   = "Terraform"
+    Project   = "Event-Forge"
+    ManagedBy = "Terraform"
   }
 }
