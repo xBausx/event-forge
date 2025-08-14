@@ -137,27 +137,6 @@ resource "aws_dynamodb_table" "sheet_watch_registry" {
 }
 
 # ======================================================================
-# Secrets (placeholders). Put real values before apply where needed.
-# ======================================================================
-resource "aws_secretsmanager_secret" "adobe_api_key" {
-  name        = "event-forge/adobe-api-key-${var.env}"
-  description = "Adobe API credentials (client_id, client_secret)."
-  tags        = local.tags
-}
-
-resource "aws_secretsmanager_secret" "google_wif_config" {
-  name        = "event-forge/google-wif-config-${var.env}"
-  description = "Google SA email for Workload Identity Federation."
-  tags        = local.tags
-}
-
-resource "aws_secretsmanager_secret" "slack_webhook_url" {
-  name        = "event-forge/slack-webhook-url-${var.env}"
-  description = "Slack webhook URL for sending reports."
-  tags        = local.tags
-}
-
-# ======================================================================
 # IAM POLICY DOCUMENT FOR LAMBDA EXECUTION ROLE
 # (no reference to the Inngest signing key secret)
 # ======================================================================
@@ -180,21 +159,19 @@ data "aws_iam_policy_document" "lambda_exec_policy" {
     ]
   }
 
+  # S3 buckets (list)
+  statement {
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.assets.arn,
+      aws_s3_bucket.outputs.arn
+    ]
+  }
+
   # DynamoDB registry
   statement {
     actions   = ["dynamodb:Query", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"]
     resources = [aws_dynamodb_table.sheet_watch_registry.arn]
-  }
-
-  # Secrets Manager (keep only the ones we still use)
-  statement {
-    actions = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
-    resources = [
-      aws_secretsmanager_secret.adobe_api_key.arn,
-      aws_secretsmanager_secret.google_wif_config.arn,
-      aws_secretsmanager_secret.slack_webhook_url.arn
-      # NOTE: no reference to an Inngest secret anymore
-    ]
   }
 
   # Allow orchestration Lambda to invoke the worker Lambdas
@@ -262,6 +239,7 @@ resource "aws_lambda_function" "read_sheet" {
     variables = {
       APP_ENV                 = var.env
       POWERTOOLS_SERVICE_NAME = "event-forge-${var.env}"
+      GOOGLE_WIF_SA_EMAIL     = "unset"
     }
   }
 }
@@ -287,6 +265,8 @@ resource "aws_lambda_function" "generate_poster" {
     variables = {
       APP_ENV                 = var.env
       POWERTOOLS_SERVICE_NAME = "event-forge-${var.env}"
+      ADOBE_CLIENT_ID         = "unset"
+      ADOBE_CLIENT_SECRET     = "unset"
     }
   }
 }
@@ -312,6 +292,7 @@ resource "aws_lambda_function" "send_report" {
     variables = {
       APP_ENV                 = var.env
       POWERTOOLS_SERVICE_NAME = "event-forge-${var.env}"
+      SLACK_WEBHOOK_URL       = "unset"
     }
   }
 }

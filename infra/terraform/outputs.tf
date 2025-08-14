@@ -54,3 +54,14 @@ output "orchestration_function_url" {
 output "orchestration_function_name" {
   value = aws_lambda_function.orchestration_endpoint.function_name
 }
+
+output "read_sheet_function_name" {
+  value = aws_lambda_function.read_sheet.function_name
+}
+
+output "generate_poster_function_name" {
+  value = aws_lambda_function.generate_poster.function_name
+}
+output "send_report_function_name" {
+  value = aws_lambda_function.send_report.function_name
+}
