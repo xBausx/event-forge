@@ -157,18 +157,6 @@ resource "aws_secretsmanager_secret" "slack_webhook_url" {
     tags        = local.tags
 }
 
-resource "aws_secretsmanager_secret" "inngest_signing_key" {
-    name        = "event-forge/inngest-signing-key-${var.env}"
-    description = "Inngest signing key for verifying webhook authenticity."
-    tags        = local.tags
-}
-
-# This data source requires the secret to have a current value.
-# Set one before apply (e.g., openssl rand -hex 32).
-data "aws_secretsmanager_secret_version" "inngest_signing_key" {
-    secret_id = aws_secretsmanager_secret.inngest_signing_key.id
-}
-
 # ======================================================================
 # IAM: Lambda trust + single exec policy (no cycles)
 # ======================================================================
@@ -354,7 +342,7 @@ resource "aws_lambda_function" "orchestration_endpoint" {
         APP_ENV                 = var.env
         ADOBE_CONCURRENCY_LIMIT = tostring(lookup(local.adobe_concurrency_limits, var.env))
         AWS_REGION              = var.aws_region
-        INNGEST_SIGNING_KEY     = data.aws_secretsmanager_secret_version.inngest_signing_key.secret_string
+        INNGEST_SIGNING_KEY     = "set-by-ci"
         }
     }
 }

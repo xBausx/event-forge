@@ -200,6 +200,43 @@ jobs:
       - name: "Terraform Apply (dev)"
         if: github.ref == 'refs/heads/main'
         run: make tf-apply env=dev
+      
+      - name: "Set INNGEST_SIGNING_KEY on orchestration Lambda (post-apply)"
+        if: github.ref == 'refs/heads/main'
+        working-directory: infra/terraform
+        env:
+          REGION: ${{ env.AWS_REGION }}
+          INNGEST_SIGNING_KEY_DEV: ${{ secrets.INNGEST_SIGNING_KEY_DEV }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y jq
+
+          if [ -z "${INNGEST_SIGNING_KEY_DEV:-}" ]; then
+            echo "::error ::GitHub secret INNGEST_SIGNING_KEY_DEV is not set."
+            exit 1
+          fi
+
+          FUNC_NAME=$(terraform output -raw orchestration_function_name)
+          if [ -z "${FUNC_NAME:-}" ]; then
+            echo "::error ::Could not read orchestration_function_name output."
+            exit 1
+          fi
+
+          CURRENT=$(aws lambda get-function-configuration \
+            --function-name "$FUNC_NAME" \
+            --region "$REGION" \
+            --query 'Environment.Variables' \
+            --output json)
+
+          UPDATED=$(echo "$CURRENT" | jq --arg v "$INNGEST_SIGNING_KEY_DEV" '. + {INNGEST_SIGNING_KEY: $v}')
+
+          aws lambda update-function-configuration \
+            --function-name "$FUNC_NAME" \
+            --region "$REGION" \
+            --environment "Variables=$UPDATED"
+
+          echo "INNGEST_SIGNING_KEY set on $FUNC_NAME"
+
 
       # (Optional) Print Terraform outputs for convenience
       - name: "Show Terraform Outputs"
