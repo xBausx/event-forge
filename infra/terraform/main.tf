@@ -14,7 +14,7 @@ resource "random_pet" "suffix" {
 }
 
 # Current AWS account (for wildcard ARNs without creating a cycle)
-data "aws_caller_identity" "current" {}
+# data "aws_caller_identity" "current" {}
 
 # -----------------------------
 # Locals (naming, tags, limits)
@@ -175,14 +175,14 @@ data "aws_iam_policy_document" "lambda_exec_policy" {
       "s3:PutObject"
     ]
     resources = [
-      "${aws_s3_bucket.assets.arn}/*",
-      "${aws_s3_bucket.outputs.arn}/*"
+      "${aws_s3_bucket.assets.arn}",
+      "${aws_s3_bucket.outputs.arn}"
     ]
   }
 
   # DynamoDB registry
   statement {
-    actions   = ["dynamodb:Query", "dynamodb:PutItem", "dynamodb:DeleteItem"]
+    actions   = ["dynamodb:Query", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"]
     resources = [aws_dynamodb_table.sheet_watch_registry.arn]
   }
 
@@ -205,6 +205,22 @@ data "aws_iam_policy_document" "lambda_exec_policy" {
       aws_lambda_function.generate_poster.arn,
       aws_lambda_function.send_report.arn
     ]
+  }
+}
+
+
+# ======================================================================
+# IAM TRUST POLICY FOR LAMBDA EXECUTION ROLE
+# ======================================================================
+data "aws_iam_policy_document" "lambda_assume_role" {
+  statement {
+    sid     = "LambdaAssumeRole"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
   }
 }
 

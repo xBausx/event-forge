@@ -46,3 +46,11 @@ output "terraform_lock_table_name" {
   value       = aws_dynamodb_table.terraform_lock.name
   description = "The name of the DynamoDB table created for Terraform state locking."
 }
+
+output "orchestration_function_url" {
+  value = aws_lambda_function_url.orchestration_endpoint_url.function_url
+}
+
+output "orchestration_function_name" {
+  value = aws_lambda_function.orchestration_endpoint.function_name
+}
