@@ -2,27 +2,25 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
-  workflow_dispatch: # Allows manual triggering of the workflow
+    branches: [ main ]
+  workflow_dispatch: {}
 
-# Global environment variables - Region normalized to us-east-1
+# Global environment variables
 env:
   AWS_REGION: "us-east-1"
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20.x"
   TERRAFORM_VERSION: "1.6.0"
 
+# NOTE: 'workflows' is not a valid permission here; omit it.
 permissions:
   contents: write
-  workflows: write
 
 jobs:
   # ====================================================================================
-  # LINT & VALIDATE: Runs on every PR and push to main.
+  # LINT & VALIDATE
   # ====================================================================================
   lint:
     name: "Lint & Validate"
@@ -31,7 +29,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # allow pushing a commit
+          fetch-depth: 0   # allow pushing auto-fmt commits
 
       - name: "Set up Python"
         uses: actions/setup-python@v5
@@ -51,43 +49,57 @@ jobs:
       - name: "Set up TFLint"
         uses: terraform-linters/setup-tflint@v4
 
-      - name: Terraform fmt (CI pre-step)
+      # Pre-format *.tf so the terraform_fmt hook finds nothing to change
+      - name: "Terraform fmt (CI pre-step)"
         shell: bash
         working-directory: infra/terraform
         run: terraform fmt -recursive
 
+      # Commit only Terraform fmt changes (safe; never touches workflow files)
       - name: "Auto-commit Terraform fmt changes"
         if: github.event_name == 'push'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(terraform): fmt via CI"
           branch: ${{ github.ref_name }}
-          file_pattern: infra/terraform/**/*.tf
+          file_pattern: |
+            infra/terraform/**/*.tf
 
       - name: "Install pre-commit"
         run: pip install pre-commit
 
-      # ⬇Run lint but don't fail the job yet
+      # Run pre-commit but don't fail the job if it modifies files (e.g., whitespace)
       - name: "Run linters via Makefile"
         id: run_precommit
         run: make lint
         continue-on-error: true
 
-      # ⬇If pre-commit changed files (e.g., trailing whitespace), commit them
-      - name: "Auto-commit pre-commit fixes"
+      # Optionally auto-commit pre-commit fixes, but EXCLUDE .github/workflows/*
+      - name: "Auto-commit pre-commit fixes (exclude workflow files)"
         if: github.event_name == 'push' && steps.run_precommit.outcome == 'failure'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(pre-commit): auto-fix formatting"
           branch: ${{ github.ref_name }}
+          # Only commit common project paths; do NOT include .github/**
+          file_pattern: |
+            src/**/*
+            infra/terraform/**/*.tf
+            docs/**/*.md
+            config/**/*.yml
+            config/**/*.yaml
+            config/**/*.json
+            schemas/**/*.json
+            .pre-commit-config.yaml
+            README.md
 
-      # ⬇Re-run lint; this should now pass cleanly
+      # Re-run lint; should now pass cleanly
       - name: "Re-run linters"
         if: github.event_name == 'push' && steps.run_precommit.outcome == 'failure'
         run: make lint
 
   # ====================================================================================
-  # DEPLOY: This job builds the application code and then deploys the infrastructure.
+  # DEPLOY: Build app code and deploy infra.
   # ====================================================================================
   deploy:
     name: "Build & Deploy to AWS"
@@ -127,12 +139,9 @@ jobs:
           for fn in read_sheet generate_poster send_report; do
             echo "--- Packaging $fn ---"
             pushd src/lambdas/$fn
-            # Vendor dependencies into the function directory
             python3 -m pip install -r requirements.txt -t .
-            # Copy the shared common code
-            if [ ! -d "src" ]; then mkdir src; fi
+            if [ ! -d "src" ]; then mkdir -p src; fi
             cp -r ../../common src/common
-            # Optional: Clean up to reduce zip size
             find . -type d -name "__pycache__" -exec rm -rf {} +
             popd
           done
@@ -152,6 +161,7 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
+      # Ensure Inngest signing key exists in Secrets Manager (uses DEV AWS keys)
       - name: "Sync Inngest signing key into Secrets Manager (DEV)"
         if: github.ref == 'refs/heads/main'
         env:
@@ -175,7 +185,6 @@ jobs:
               --region "$REGION"
             echo "Created $SECRET_NAME in $REGION"
           else
-            # ensure it has a current value
             if ! aws secretsmanager get-secret-value --secret-id "$SECRET_NAME" --region "$REGION" >/dev/null 2>&1; then
               aws secretsmanager put-secret-value \
                 --secret-id "$SECRET_NAME" \
@@ -186,8 +195,35 @@ jobs:
               echo "$SECRET_NAME already has a value; leaving as is."
             fi
           fi
-      
-      # Terraform Apply must run *after* the build steps, so the zip files exist.
+
+      # Apply must run *after* build steps, so zips exist.
       - name: "Terraform Apply (dev)"
         if: github.ref == 'refs/heads/main'
         run: make tf-apply env=dev
+
+      # (Optional) Print Terraform outputs for convenience
+      - name: "Show Terraform Outputs"
+        if: github.ref == 'refs/heads/main'
+        working-directory: infra/terraform
+        run: |
+          echo "Orchestration Function URL:"
+          terraform output orchestration_function_url || true
+          echo
+          echo "Assets bucket:"
+          terraform output assets_bucket || true
+          echo
+          echo "Outputs bucket:"
+          terraform output outputs_bucket || true
+
+      - name: "Write outputs to job summary"
+        if: github.ref == 'refs/heads/main'
+        working-directory: infra/terraform
+        shell: bash
+        run: |
+          {
+            echo "## Terraform outputs"
+            echo ""
+            echo "- Orchestration Function URL: \`$(terraform output -raw orchestration_function_url 2>/dev/null || echo 'N/A')\`"
+            echo "- Assets bucket: \`$(terraform output -raw assets_bucket 2>/dev/null || echo 'N/A')\`"
+            echo "- Outputs bucket: \`$(terraform output -raw outputs_bucket 2>/dev/null || echo 'N/A')\`"
+          } >> "$GITHUB_STEP_SUMMARY"
